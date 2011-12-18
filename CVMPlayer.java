@@ -1,17 +1,25 @@
 package projetcvmplayer;
 
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Rectangle;
 import java.io.File;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+
+import java.util.Hashtable;
+
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JSlider;
 import javax.swing.Timer;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class CVMPlayer extends JFrame {
+    private GestEvent ec;
     private JButton btnOuvrirFichier = new JButton();
     private JLabel lblTempsEcoule = new JLabel();
     private JButton btnPlayPause = new JButton();
@@ -24,10 +32,13 @@ public class CVMPlayer extends JFrame {
     private NumberFormat fmtMinSec;
     private String titreChanson;
     private String titreChansonAffichee;
-    private final int LONG_TITRE = 20;
+    private final int LONG_TITRE = 75;
     private JButton btnStop = new JButton();
     private JSlider sliderTemps = new JSlider();
     private JSlider sliderVolume = new JSlider();
+    private JButton btnPlaylist = new JButton();
+    private DlgPlaylist dlgPlaylist;
+    private Hashtable<String, Playlist> playlistes;
 
     public CVMPlayer() {
         try {
@@ -46,13 +57,17 @@ public class CVMPlayer extends JFrame {
         btnPlayPause.setText(" > ");
         btnPlayPause.setBounds(new Rectangle(405, 170, 75, 45));
         lblTempsEcoule.setText("");
-        lblTempsEcoule.setBounds(new Rectangle(35, 25, 155, 95));
-        lblTitreChanson.setBounds(new Rectangle(255, 25, 400, 55));
+        lblTempsEcoule.setBounds(new Rectangle(35, 25, 180, 95));
+        lblTempsEcoule.setFont(new Font("Arial Rounded MT Bold", 0, 50));
+        lblTitreChanson.setBounds(new Rectangle(275, 25, 380, 55));
         btnStop.setText("Stop");
         btnStop.setBounds(new Rectangle(305, 175, 75, 40));
         sliderTemps.setBounds(new Rectangle(30, 135, 620, 25));
         sliderTemps.setValue(0);
-        sliderVolume.setBounds(new Rectangle(350, 85, 295, 30));
+        sliderVolume.setBounds(new Rectangle(395, 90, 255, 30));
+        btnPlaylist.setText("PL");
+        btnPlaylist.setBounds(new Rectangle(600, 175, 65, 45));
+        this.getContentPane().add(btnPlaylist, null);
         this.getContentPane().add(sliderVolume, null);
         this.getContentPane().add(sliderTemps, null);
         this.getContentPane().add(btnStop, null);
@@ -62,21 +77,26 @@ public class CVMPlayer extends JFrame {
         this.getContentPane().add(btnOuvrirFichier, null);
         timerTempsEcoule = new Timer(1000, null);
         fmtMinSec = new DecimalFormat("00");
+        dlgPlaylist = new DlgPlaylist(this, "Playliste", false);
+        playlistes = new Hashtable<String, Playlist>(10);
         //1.
-        GestEvent ec = new GestEvent(this);
+        ec = new GestEvent(this, dlgPlaylist);
         //2.
         btnOuvrirFichier.addActionListener(ec);
         timerTempsEcoule.addActionListener(ec);
         btnPlayPause.addActionListener(ec);
         btnStop.addActionListener(ec);
+        btnPlaylist.addActionListener(ec);
+        dlgPlaylist.getBtnNouvellePlaylist().addActionListener(ec);       
     }
 
-    public void jouerChanson(File file) {
-        currentFile = file;
-        wavInfo = new WavInfo(currentFile);
-        wavDiff = new WavDiffuseur2(wavInfo);
-        wavDiff.start();
-        initialiserChanson();
+    public void choisirChanson() {
+        JFileChooser fileChooser = new JFileChooser(new File(".").getAbsolutePath()+"/mp3");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Fichier audio", "mp3"));
+        if(fileChooser.showOpenDialog(this)== JFileChooser.APPROVE_OPTION){
+            //TODO make sure the file is valid
+            currentFile = fileChooser.getSelectedFile();
+        }
     }
     
     private void initialiserChanson(){
@@ -93,15 +113,29 @@ public class CVMPlayer extends JFrame {
     }
     
     public void pauseMusic() {
-        wavDiff.setStatut(WavDiffuseur2.PAUSE);
-        timerTempsEcoule.stop();
-        btnPlayPause.setText(" > ");
+        try {
+            wavDiff.setStatut(WavDiffuseur2.PAUSE);
+            timerTempsEcoule.stop();
+            btnPlayPause.setText(" > ");
+        } catch (Exception e) {
+            // TODO: Add catch code
+            JOptionPane.showMessageDialog(this, "Musique ne joue pas");
+        }
     }
 
     public void playMusic() {
-        wavDiff.setStatut(WavDiffuseur2.PLAY);
-        timerTempsEcoule.start();
-        btnPlayPause.setText(" | | ");
+        if(currentFile != null){
+            if (wavDiff == null) {
+                wavInfo = new WavInfo(currentFile);
+                wavDiff = new WavDiffuseur2(wavInfo);
+                initialiserChanson();
+                wavDiff.start();
+            } else if (wavDiff.getStatut() == WavDiffuseur2.PAUSE) {
+                wavDiff.setStatut(WavDiffuseur2.PLAY);
+            }
+            timerTempsEcoule.start();
+            btnPlayPause.setText(" | | ");
+        }
     }
     
     public void stopMusic() {
@@ -111,6 +145,9 @@ public class CVMPlayer extends JFrame {
     }
     
     private void resetChanson(){
+        currentFile = null;
+        wavInfo = null;
+        wavDiff = null;
         lblTempsEcoule.setText("");
         lblTitreChanson.setText("");
         sliderTemps.setValue(0);
@@ -138,6 +175,10 @@ public class CVMPlayer extends JFrame {
         lblTitreChanson.setText(titreChansonAffichee);
     }
     
+    public void ajouterPlaylist(Playlist playlist) {
+        playlistes.put(playlist.getNom(), playlist);
+    }
+    
     public JButton getBtnOuvrirFichier() {
         return btnOuvrirFichier;
     }
@@ -154,4 +195,19 @@ public class CVMPlayer extends JFrame {
         return btnStop;
     }
 
+    public JButton getBtnPlaylist() {
+        return btnPlaylist;
+    }
+
+    public GestEvent getEc() {
+        return ec;
+    }
+
+    public JButton getBtnNouvellePlaylist() {
+        return dlgPlaylist.getBtnNouvellePlaylist();
+    }
+
+    public Hashtable<String, Playlist> getPlaylistes() {
+        return playlistes;
+    }
 }

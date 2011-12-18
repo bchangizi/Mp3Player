@@ -4,8 +4,10 @@ import javax.swing.JFrame;
 
 public class TestMP3Player {
     public static void main(String[] args) {
-        CVMPlayer cvmp = new CVMPlayer();
-        cvmp.setVisible(true);
-        cvmp.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        CVMPlayer cvmPlayer = new CVMPlayer();
+//        DlgPlaylist dlgPlaylist = new DlgPlaylist(cvmPlayer, "Playliste", false);
+//        GestEvent ge = new GestEvent(cvmPlayer, dlgPlaylist);
+        cvmPlayer.setVisible(true);
+        cvmPlayer.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 }
