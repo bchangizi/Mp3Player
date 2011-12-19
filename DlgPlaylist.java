@@ -5,17 +5,27 @@ import java.awt.Frame;
 
 import java.awt.Rectangle;
 
+import java.io.File;
+
 import java.util.Enumeration;
+
+import java.util.Iterator;
+import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.table.DefaultTableModel;
 
 public class DlgPlaylist extends JDialog {
     private JScrollPane jScrollPane1 = new JScrollPane();
+    private final String COL[] = { "Titre" };
+    DefaultTableModel model = new DefaultTableModel(null, COL);
     private JTable tabPlayList = new JTable();
+    private JList jlist= new JList();
     private JComboBox comboPlaylist = new JComboBox();
     private JButton btnNouvellePlaylist = new JButton();
     private CVMPlayer cvmPlayer;
@@ -62,10 +72,33 @@ public class DlgPlaylist extends JDialog {
         comboPlaylist.setSelectedItem(playlist);
     }
     
+    public void ajouterChansonPlaylist() {
+        File chanson = cvmPlayer.choisirChanson();
+        String nomPlaylist = (String)comboPlaylist.getSelectedItem();
+        Playlist pl = cvmPlayer.getPlaylist(nomPlaylist);
+        pl.ajouterChanson(chanson);
+        System.out.println(pl.getChansonsListe().get(0).getName());
+        updateTabPlayList(pl.getChansonsListe());
+    }
+    
+    public void updateTabPlayList(Vector chansonListe){
+        Iterator<String> it = new Iterator<String>(chansonListe);
+        tabPlayList.removeAll();
+        
+        model.addRow(chansonListe);
+    }
+    
     public JButton getBtnNouvellePlaylist() {
         return btnNouvellePlaylist;
     }
 
+    public JButton getBtnAjouterChanson() {
+        return btnAjouterChanson;
+    }
 
-    
+    public JComboBox getComboPlaylist() {
+        return comboPlaylist;
+    }
+
+
 }

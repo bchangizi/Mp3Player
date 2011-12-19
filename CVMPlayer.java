@@ -24,7 +24,7 @@ public class CVMPlayer extends JFrame {
     private JLabel lblTempsEcoule = new JLabel();
     private JButton btnPlayPause = new JButton();
     private JLabel lblTitreChanson = new JLabel();
-    private File currentFile;
+    private File chansonCourante;
     private WavInfo wavInfo;
     private WavDiffuseur2 wavDiff;
     private Timer timerTempsEcoule;
@@ -87,23 +87,25 @@ public class CVMPlayer extends JFrame {
         btnPlayPause.addActionListener(ec);
         btnStop.addActionListener(ec);
         btnPlaylist.addActionListener(ec);
-        dlgPlaylist.getBtnNouvellePlaylist().addActionListener(ec);       
+        dlgPlaylist.getBtnNouvellePlaylist().addActionListener(ec);
+        dlgPlaylist.getBtnAjouterChanson().addActionListener(ec);
     }
 
-    public void choisirChanson() {
+    public File choisirChanson() {
         JFileChooser fileChooser = new JFileChooser(new File(".").getAbsolutePath()+"/mp3");
         fileChooser.setFileFilter(new FileNameExtensionFilter("Fichier audio", "mp3"));
         if(fileChooser.showOpenDialog(this)== JFileChooser.APPROVE_OPTION){
             //TODO make sure the file is valid
-            currentFile = fileChooser.getSelectedFile();
-        }
+            return fileChooser.getSelectedFile();
+        }else
+            return null;
     }
     
     private void initialiserChanson(){
         secondesEcoule = 0;
         timerTempsEcoule.start();
         btnPlayPause.setText(" | | ");
-        titreChanson = currentFile.getName();
+        titreChanson = chansonCourante.getName();
         titreChansonAffichee = titreChanson;
         while(titreChansonAffichee.length() < LONG_TITRE)
             titreChansonAffichee+="-";
@@ -124,9 +126,9 @@ public class CVMPlayer extends JFrame {
     }
 
     public void playMusic() {
-        if(currentFile != null){
+        if(chansonCourante != null){
             if (wavDiff == null) {
-                wavInfo = new WavInfo(currentFile);
+                wavInfo = new WavInfo(chansonCourante);
                 wavDiff = new WavDiffuseur2(wavInfo);
                 initialiserChanson();
                 wavDiff.start();
@@ -145,7 +147,7 @@ public class CVMPlayer extends JFrame {
     }
     
     private void resetChanson(){
-        currentFile = null;
+        chansonCourante = null;
         wavInfo = null;
         wavDiff = null;
         lblTempsEcoule.setText("");
@@ -170,8 +172,10 @@ public class CVMPlayer extends JFrame {
     }
     
     private void animerTitreChanson(){
+        String temp;
         titreChansonAffichee = titreChansonAffichee.charAt(titreChansonAffichee.length()-1)+titreChansonAffichee;
         titreChansonAffichee = titreChansonAffichee.substring(0, titreChansonAffichee.length()-1);
+        temp = titreChansonAffichee.substring(0, LONG_TITRE);
         lblTitreChanson.setText(titreChansonAffichee);
     }
     
@@ -209,5 +213,17 @@ public class CVMPlayer extends JFrame {
 
     public Hashtable<String, Playlist> getPlaylistes() {
         return playlistes;
+    }
+    
+    public Playlist getPlaylist(String nomPlaylist) {
+        return playlistes.get(nomPlaylist);
+    }
+
+    public void setChansonCourante(File currentFile) {
+        this.chansonCourante = currentFile;
+    }
+
+    public File getChansonCourante() {
+        return chansonCourante;
     }
 }

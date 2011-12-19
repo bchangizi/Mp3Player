@@ -24,7 +24,7 @@ public class GestEvent implements ActionListener{
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource().equals(cvmPlayer.getBtnOuvrirFichier())){
-            cvmPlayer.choisirChanson();
+            cvmPlayer.setChansonCourante(cvmPlayer.choisirChanson());
             cvmPlayer.playMusic();
         }else if(e.getSource().equals(cvmPlayer.getTimerTempsEcoule())){
             cvmPlayer.misajourAffichage();
@@ -43,6 +43,12 @@ public class GestEvent implements ActionListener{
             cvmPlayer.ajouterPlaylist(new Playlist(nomPlaylist));
             dlgPlaylist.updateListePlaylists();
             dlgPlaylist.setSelectedPlaylist(nomPlaylist);
+        }else if (e.getSource().equals(dlgPlaylist.getBtnAjouterChanson())){
+            if (dlgPlaylist.getComboPlaylist().getSelectedIndex()!=-1){
+                dlgPlaylist.ajouterChansonPlaylist();
+            }else{
+                JOptionPane.showMessageDialog(null, "Choir un playlist auquel vous désirer ajouter une chanson");
+            }
         }
        
     }
