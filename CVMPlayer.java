@@ -9,6 +9,8 @@ import java.text.NumberFormat;
 
 import java.util.Hashtable;
 
+import java.util.Vector;
+
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -19,7 +21,7 @@ import javax.swing.Timer;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class CVMPlayer extends JFrame {
-    private GestEvent ec;
+    private GestEventPlayer ec;
     private JButton btnOuvrirFichier = new JButton();
     private JLabel lblTempsEcoule = new JLabel();
     private JButton btnPlayPause = new JButton();
@@ -39,6 +41,9 @@ public class CVMPlayer extends JFrame {
     private JButton btnPlaylist = new JButton();
     private DlgPlaylist dlgPlaylist;
     private Hashtable<String, Playlist> playlistes;
+    private int indexChansonCourante;
+    private JButton btnNextChanson = new JButton();
+    private JButton btnPreviousChanson = new JButton();
 
     public CVMPlayer() {
         try {
@@ -67,6 +72,12 @@ public class CVMPlayer extends JFrame {
         sliderVolume.setBounds(new Rectangle(395, 90, 255, 30));
         btnPlaylist.setText("PL");
         btnPlaylist.setBounds(new Rectangle(600, 175, 65, 45));
+        btnNextChanson.setText("> >");
+        btnNextChanson.setBounds(new Rectangle(225, 180, 70, 40));
+        btnPreviousChanson.setText("< <");
+        btnPreviousChanson.setBounds(new Rectangle(135, 180, 70, 45));
+        this.getContentPane().add(btnPreviousChanson, null);
+        this.getContentPane().add(btnNextChanson, null);
         this.getContentPane().add(btnPlaylist, null);
         this.getContentPane().add(sliderVolume, null);
         this.getContentPane().add(sliderTemps, null);
@@ -77,18 +88,20 @@ public class CVMPlayer extends JFrame {
         this.getContentPane().add(btnOuvrirFichier, null);
         timerTempsEcoule = new Timer(1000, null);
         fmtMinSec = new DecimalFormat("00");
-        dlgPlaylist = new DlgPlaylist(this, "Playliste", false);
+        indexChansonCourante = -1;
         playlistes = new Hashtable<String, Playlist>(10);
+        dlgPlaylist = new DlgPlaylist(this, "Playliste", false);
         //1.
-        ec = new GestEvent(this, dlgPlaylist);
+        ec = new GestEventPlayer(this, dlgPlaylist);
         //2.
         btnOuvrirFichier.addActionListener(ec);
         timerTempsEcoule.addActionListener(ec);
         btnPlayPause.addActionListener(ec);
         btnStop.addActionListener(ec);
         btnPlaylist.addActionListener(ec);
-        dlgPlaylist.getBtnNouvellePlaylist().addActionListener(ec);
-        dlgPlaylist.getBtnAjouterChanson().addActionListener(ec);
+        btnNextChanson.addActionListener(ec);
+        btnPreviousChanson.addActionListener(ec);
+        this.addWindowListener(ec);
     }
 
     public File choisirChanson() {
@@ -126,23 +139,23 @@ public class CVMPlayer extends JFrame {
     }
 
     public void playMusic() {
-        if(chansonCourante != null){
-            if (wavDiff == null) {
-                wavInfo = new WavInfo(chansonCourante);
-                wavDiff = new WavDiffuseur2(wavInfo);
-                initialiserChanson();
-                wavDiff.start();
-            } else if (wavDiff.getStatut() == WavDiffuseur2.PAUSE) {
-                wavDiff.setStatut(WavDiffuseur2.PLAY);
-            }
-            timerTempsEcoule.start();
-            btnPlayPause.setText(" | | ");
+        if (wavDiff == null) {
+            wavInfo = new WavInfo(chansonCourante);
+            wavDiff = new WavDiffuseur2(wavInfo);
+            initialiserChanson();
+            wavDiff.start();
+        } else if (wavDiff.getStatut() == WavDiffuseur2.PAUSE) {
+            wavDiff.setStatut(WavDiffuseur2.PLAY);
         }
+        timerTempsEcoule.start();
+        btnPlayPause.setText(" | | ");
     }
     
     public void stopMusic() {
-        wavDiff.setStatut(WavDiffuseur2.STOP);
-        timerTempsEcoule.stop();
+        if(wavDiff != null)
+            wavDiff.setStatut(WavDiffuseur2.STOP);
+        if(timerTempsEcoule.isRunning())
+            timerTempsEcoule.stop();
         resetChanson();
     }
     
@@ -153,6 +166,64 @@ public class CVMPlayer extends JFrame {
         lblTempsEcoule.setText("");
         lblTitreChanson.setText("");
         sliderTemps.setValue(0);
+        if(dlgPlaylist.getComboPlaylist().getSelectedIndex()== -1)
+            dlgPlaylist.viderListchansons();
+        btnPlayPause.setText(" > ");
+        updateEtatBoutons();
+    }
+    
+    private void updateEtatBoutons(){
+        if (dlgPlaylist.getNomPlaylistCourant()!= null){
+            btnPlayPause.setEnabled(true);
+            btnPreviousChanson.setEnabled(true);
+            btnNextChanson.setEnabled(true);
+            dlgPlaylist.getBtnNouvellePlaylist().setEnabled(true);
+            if(indexChansonCourante < 1){
+                btnPreviousChanson.setEnabled(false);
+            }
+            if (indexChansonCourante >= playlistes.get(dlgPlaylist.getNomPlaylistCourant()).getChansonsListe().size()-1){
+                btnNextChanson.setEnabled(false);
+            }
+            if (wavDiff != null && dlgPlaylist.getNomPlaylistCourant()!= null){
+                dlgPlaylist.getBtnNouvellePlaylist().setEnabled(false);
+            }
+        }    
+/*         btnNextChanson;
+        btnStop
+        dlgPlaylist.getBtnAjouterChanson()
+        dlgPlaylist.getBtnAjouterChanson() */
+            
+            
+    }
+    
+    public void playNextChanson() {
+        if (dlgPlaylist.getNomPlaylistCourant()!= null){
+            indexChansonCourante++;
+            Vector<File> chansons = playlistes.get(dlgPlaylist.getNomPlaylistCourant()).getChansonsListe();
+            if (indexChansonCourante < chansons.size()){
+                stopMusic();
+                chansonCourante = chansons.get(indexChansonCourante);
+                playMusic();
+                updateEtatBoutons();
+            }else{
+                indexChansonCourante = -1;
+            }
+        }
+    }
+    
+    public void playPreviousChanson() {
+        if (dlgPlaylist.getNomPlaylistCourant()!= null){
+            indexChansonCourante--;
+            Vector<File> chansons = playlistes.get(dlgPlaylist.getNomPlaylistCourant()).getChansonsListe();
+            if (indexChansonCourante >= 0){
+                stopMusic();
+                chansonCourante = chansons.get(indexChansonCourante);
+                playMusic();
+                updateEtatBoutons();
+            }else{
+                indexChansonCourante = -1;
+            }
+        }
     }
     
     public void misajourAffichage() {
@@ -162,6 +233,7 @@ public class CVMPlayer extends JFrame {
         }else{
             timerTempsEcoule.stop();
             resetChanson();
+            playNextChanson();
         }
     }
     
@@ -203,7 +275,7 @@ public class CVMPlayer extends JFrame {
         return btnPlaylist;
     }
 
-    public GestEvent getEc() {
+    public GestEventPlayer getEc() {
         return ec;
     }
 
@@ -226,4 +298,21 @@ public class CVMPlayer extends JFrame {
     public File getChansonCourante() {
         return chansonCourante;
     }
+
+    public void setIndexChansonCourante(int indexChansonCourante) {
+        this.indexChansonCourante = indexChansonCourante;
+    }
+
+    public int getIndexChansonCourante() {
+        return indexChansonCourante;
+    }
+
+    public JButton getBtnNextChanson() {
+        return btnNextChanson;
+    }
+
+    public JButton getBtnPreviousChanson() {
+        return btnPreviousChanson;
+    }
+
 }

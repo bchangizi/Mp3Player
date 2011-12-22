@@ -2,9 +2,11 @@ package projetcvmplayer;
 
 import java.io.File;
 
+import java.io.Serializable;
+
 import java.util.Vector;
 
-public class Playlist {
+public class Playlist implements Serializable {
     private Vector<File> chansonsListe;
     private String nom;
     public Playlist(String nom) {
